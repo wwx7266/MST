@@ -1,43 +1,60 @@
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
+
 
 public class mst {
 
-    Graph graphs[];
+    Graph g;
 
-    mst(int number, int graphSize){
-        graphs = new Graph[number];
-        for(int i = 0; i < number; i++){
-            graphs[i] = new Graph(graphSize);
-        }
-//        for(Graph g : graphs){
-//            g = new Graph(graphSize);
-//        }
+    mst(int size){
+        g = new Graph(size);
+    }
+
+    public double getKruskalMSTweight(){
+        return g.KruskalMST();
+    }
+
+    public double getPrimsMSTweight(){
+        return g.PrimMST();
     }
 
     public class Graph{
         int V; // number of nodes
-        double[][] adj; //adj matrix
+        Set<Edge>[] adj; //adj matrix
         Node[] nodes;
 
-
+        //Graph generation for (i)
         Graph(int V){
-            System.out.println("graph size is = "+ V);
             this.V = V;
-            adj = new double[V][V];
+            adj = new Set[V];
             nodes = new Node[V];
             for(int i=0; i < V; i++){
                 nodes[i] = new Node(i);
+                adj[i] = new HashSet<>();
             }
             for(int i = 0; i < V; i++){
-                for(int j = 0; j < V; j++){
-                    if(i == j) adj[i][j]=0;
-                    else
-                        adj[i][j] = (new Edge(i, j)).weight;
+                for(int j = i+1; j < V; j++){
+                    addEdge(new Edge(i, j));
                 }
             }
+        }
+
+        Graph(int V, boolean flag){
+
+        }
+
+
+
+        public Set<Edge> getAllEdges(){
+            Set<Edge> ret= new HashSet<>();
+            for(int i =0; i < V; i++){
+                ret.addAll(adj[i]);
+            }
+            return ret;
+        }
+
+        public void addEdge(Edge edge){
+            adj[edge.from].add(edge);
+            adj[edge.to].add(edge);
         }
 
         public class Edge implements Comparable<Edge>{
@@ -46,16 +63,28 @@ public class mst {
             double weight;
 
             Edge(int from, int to){
-                from = from;
-                to = to;
-                double dx = nodes[from].x - nodes[to].x;System.out.println();
+                this.from = from;
+                this.to = to;
+                double dx = nodes[from].x - nodes[to].x;
                 double dy = nodes[from].y - nodes[to].y;
                 weight = Math.sqrt(dx*dx + dy*dy);
+            }
+
+            double getWeight(){
+                return weight;
             }
 
             public int compareTo(Edge compareEdge)
             {
                 return (int)(this.weight-compareEdge.weight);
+            }
+
+            public int getOther(int node){
+                if(this.from == node)
+                    return to;
+                else if(this.to == node)
+                    return from;
+                return -1;
             }
         }
 
@@ -65,7 +94,7 @@ public class mst {
             double y;
 
             Node(int index){
-                index = index;
+                this.index = index;
                 double max = 1;
                 double min = 0;
                 Random r = new Random();
@@ -75,81 +104,174 @@ public class mst {
         }
 
         public double KruskalMST(){
-            Edge results[] = new Graph.Edge[V];
-            Edge edges[] = new Graph.Edge[(V-1)*(V)/2];
-            Subset subsets[] = new Subset[V];
-            int index = 0;
-            for(int i = 0; i < V; i++){
-                subsets[i] = new Subset(i);
-                for(int j=0; j < V; j++){
-                    edges[index] = new Edge(i, j);
-                    index++;
-                }
-            }
+            ArrayList<Edge> results = new ArrayList<>();
+            Set<Edge> edges = getAllEdges();
+            PriorityQueue<Edge> pq = new PriorityQueue<>(Comparator.comparing(Edge::getWeight));
+            pq.addAll(edges);
+            Subset sb = new Subset(V);
 
-            Arrays.sort(edges);
-
-            int e=0;
-            int i = 0;
-            while(e < V -1){
-                Edge next = edges[i++];
-                int x = find_set(subsets, next.from);
-                int y = find_set(subsets, next.to);
-                if(x != y){
-                    results[e++] = next;
-                    union_set(subsets, x, y);
+            while(!pq.isEmpty() && results.size() < V -1){
+                Edge next = pq.poll();
+                int x = next.from;
+                int y = next.to;
+                if(sb.isConnected(x,y)){
+                    continue;
                 }
+                sb.union_set(x, y);
+                results.add(next);
             }
-            int sum = 0;
+            double sum = 0;
             for(Edge edge : results){
                 sum += edge.weight;
             }
             return sum;
         }
+
+        public int findMinKey(double key[], boolean marked[]){
+            double min = Double.MAX_VALUE;
+            int index = -1;
+            for(int i=0; i < V; i++){
+                if(marked[i] == false && key[i] < min){
+                    min = key[i];
+                    index = i;
+                }
+            }
+            return index;
+        }
+
+        public double findConnectedWeight(int from, int to){
+            if(from == to) return 0;
+            Set<Edge> edges = adj[from];
+            for(Edge e : edges){
+                if(e.getOther(from) == to)
+                    return e.weight;
+            }
+            return -1;
+        }
+
+        public double PrimMST(){
+            boolean marked[] = new boolean[V];
+            int pi[] = new int[V];
+            double key[] = new double[V];
+
+            //init state
+            for(int i =0; i < V; i++){
+                key[i] = Double.MAX_VALUE;
+                pi[i] = -1;
+                marked[i] = false;
+            }
+
+            key[0] = 0;
+            pi[0] = -1;
+
+            for(int i =0; i < V-1; i++){
+                int u = findMinKey(key, marked);
+                marked[u] = true;
+
+                for(int v=0; v < V; v++){
+                    if(u == v) continue;
+                    double weight = findConnectedWeight(u, v);
+                    if(weight != -1 && marked[v] == false && weight < key[v]){
+                        pi[v] = u;
+                        key[v] = weight;
+                    }
+                }
+            }
+            double sum = 0;
+            for(int i =1; i < V; i++){
+                sum += findConnectedWeight(i, pi[i]);
+            }
+//            System.out.println("sum = " + sum);
+            return sum;
+        }
     }
 
     private class Subset{
-        int parent;
-        int rank;
+        int parent[];
+        int rank[];
+        int count;
 
-        Subset(int node){
-            parent = node;
-            rank = 0;
+        Subset(int n){
+            count = n;
+            parent = new int[n];
+            rank = new int[n];
+            for(int i = 0; i < n; i++){
+                parent[i] = i;
+                rank[i] = 0;
+            }
+        }
+
+        private boolean isConnected(int p, int q){
+            return find_set(p) == find_set(q);
+        }
+
+        private int find_set( int i){
+            while (i != parent[i]){
+                parent[i] = parent[parent[i]];
+                i = parent[i];
+            }
+            return i;
+        }
+
+        private void union_set(int i, int j){
+            int root_1 = find_set(i);
+            int root_2 = find_set(j);
+
+            if(rank[root_1]<  rank[root_2])
+                parent[root_1] = root_2;
+            else if(rank[root_1] >  rank[root_2])
+                parent[root_2] = root_1;
+            else if(rank[root_1] == rank[root_2]){
+                parent[root_2] = root_1;
+                rank[root_1]++;
+            }
         }
     }
 
-    private int find_set(Subset subsets[], int i){
-        if(subsets[i].parent != i)
-            subsets[i].parent = find_set(subsets, subsets[i].parent);
-        return subsets[i].parent;
-    }
 
-    private void union_set(Subset subsets[], int i, int j){
-        int root_1 = find_set(subsets, i);
-        int root_2 = find_set(subsets, j);
-
-        if(subsets[root_1].rank <  subsets[root_2].rank)
-            subsets[root_1].parent = root_2;
-        else if(subsets[root_1].rank >  subsets[root_2].rank)
-            subsets[root_2].parent = root_1;
-        else if(subsets[root_1].rank == subsets[root_2].rank){
-            subsets[root_2].parent = root_1;
-            subsets[root_1].rank++;
-        }
-    }
 
 
     public static void main(String[] args) {
         Random r = new Random();
-        double sum_size_100 = 0;
-        int p_size_100 = r.nextInt(50)+50;
-        System.out.println(p_size_100);
-        mst test_size_100 = new mst(p_size_100, 2);
-        System.out.println("size=" + test_size_100.graphs[0].V);
-        for(Graph g: test_size_100.graphs){
-            sum_size_100 += g.KruskalMST();
+        int p = 0;
+        double sum = 0;
+
+        double PrimSum = 0;
+
+        p = 50 + r.nextInt(10);
+        for(int i=0; i < p; i++){
+            mst test = new mst(100);
+            sum += test.getKruskalMSTweight();
+            PrimSum += test.getPrimsMSTweight();
         }
-        System.out.println(sum_size_100/p_size_100);
+        System.out.println("n=100 p=" + p + "\n" + sum/p + " --- " + PrimSum/p);
+
+        sum = 0;
+        PrimSum = 0;
+        p = 50 + r.nextInt(10);
+        for(int i=0; i < p; i++){
+            mst test = new mst(500);
+            sum += test.getKruskalMSTweight();
+            PrimSum += test.getPrimsMSTweight();
+
+        }
+        System.out.println("n=500 p=" + p + "\n" + sum/p + " --- " + PrimSum/p);
+
+//        sum = 0;
+//        p = 50 + r.nextInt(10);
+//        for(int i=0; i < p; i++){
+//            mst test = new mst(1000);
+//            sum += test.getKruskalMSTweight();
+//        }
+//        System.out.println("n=1000 p=" + p + "\n" + sum/p);
+//
+//        sum = 0;
+//        p = 50 + r.nextInt(10);
+//        for(int i=0; i < p; i++){
+//            mst test = new mst(5000);
+//            sum += test.getKruskalMSTweight();
+//        }
+//        System.out.println("n=5000 p=" + p + "\n" + sum/p);
 
     }
 
