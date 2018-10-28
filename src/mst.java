@@ -4,10 +4,17 @@ import java.util.*;
 public class mst {
 
     Graph g;
+    long KruskalRuningTiem, PrimeRunningTime;
 
-    mst(int size){
-        g = new Graph(size);
+    mst(int size, boolean flag){
+        KruskalRuningTiem = 0;
+        PrimeRunningTime = 0;
+        if(flag==false)
+            g = new Graph(size);
+        else
+            g = new Graph(size, flag);
     }
+
 
     public double getKruskalMSTweight(){
         return g.KruskalMST();
@@ -38,7 +45,42 @@ public class mst {
             }
         }
 
+        //generate randomly connected graph
         Graph(int V, boolean flag){
+
+            int bound = V;
+            boolean added[] = new boolean[V];
+
+
+            this.V = V;
+            adj = new Set[V];
+
+            ArrayList<Node> vetexs = new ArrayList<>();
+            nodes = new Node[V];
+            for(int i=0; i < V; i++){
+                nodes[i] = new Node(i);
+                adj[i] = new HashSet<>();
+                added[i] = false;
+                vetexs.add(nodes[i]);
+            }
+
+            int index = (int) ((Math.random() * vetexs.size()));
+            Node pre = vetexs.get(index);
+            vetexs.remove(index);
+
+            index = (int) ((Math.random() * vetexs.size()));
+            Node next = vetexs.get(index);
+            vetexs.remove(index);
+
+            addEdge(new Edge(pre.index, next.index));
+            while(!vetexs.isEmpty()){
+                index = (int) ((Math.random() * vetexs.size()));
+                next = vetexs.get(index);
+                vetexs.remove(index);
+                addEdge(new Edge(pre.index, next.index));
+                pre = next;
+            }
+
 
         }
 
@@ -104,6 +146,7 @@ public class mst {
         }
 
         public double KruskalMST(){
+            long startTime = System.currentTimeMillis();
             ArrayList<Edge> results = new ArrayList<>();
             Set<Edge> edges = getAllEdges();
             PriorityQueue<Edge> pq = new PriorityQueue<>(Comparator.comparing(Edge::getWeight));
@@ -124,6 +167,8 @@ public class mst {
             for(Edge edge : results){
                 sum += edge.weight;
             }
+            long endTime = System.currentTimeMillis();
+            KruskalRuningTiem = endTime - startTime;
             return sum;
         }
 
@@ -150,6 +195,7 @@ public class mst {
         }
 
         public double PrimMST(){
+            long startTime = System.currentTimeMillis();
             boolean marked[] = new boolean[V];
             int pi[] = new int[V];
             double key[] = new double[V];
@@ -181,7 +227,8 @@ public class mst {
             for(int i =1; i < V; i++){
                 sum += findConnectedWeight(i, pi[i]);
             }
-//            System.out.println("sum = " + sum);
+            long endTime = System.currentTimeMillis();
+            PrimeRunningTime = endTime - startTime;
             return sum;
         }
     }
@@ -235,44 +282,97 @@ public class mst {
         Random r = new Random();
         int p = 0;
         double sum = 0;
-
         double PrimSum = 0;
+
+        long KruskalTime = 0;
+        long PrimeTime = 0;
 
         p = 50 + r.nextInt(10);
         for(int i=0; i < p; i++){
-            mst test = new mst(100);
+            mst test = new mst(100, false);
             sum += test.getKruskalMSTweight();
-            PrimSum += test.getPrimsMSTweight();
         }
-        System.out.println("n=100 p=" + p + "\n" + sum/p + " --- " + PrimSum/p);
+        System.out.println("n=100 p=" + p + "\n" + sum/p);
 
         sum = 0;
         PrimSum = 0;
         p = 50 + r.nextInt(10);
         for(int i=0; i < p; i++){
-            mst test = new mst(500);
+            mst test = new mst(500, false);
+            sum += test.getKruskalMSTweight();
+
+        }
+        System.out.println("n=500 p=" + p + "\n" + sum/p);
+
+        sum = 0;
+        p = 50 + r.nextInt(10);
+        for(int i=0; i < p; i++){
+            mst test = new mst(1000, false);
+            sum += test.getKruskalMSTweight();
+        }
+        System.out.println("n=1000 p=" + p + "\n" + sum/p);
+
+        sum = 0;
+        p = 50 + r.nextInt(10);
+        for(int i=0; i < p; i++){
+            mst test = new mst(5000, false);
+            sum += test.getKruskalMSTweight();
+        }
+        System.out.println("n=5000 p=" + p + "\n" + sum/p);
+
+
+        p = 50 + r.nextInt(10);
+        for(int i=0; i < p; i++){
+            mst test = new mst(100, true);
             sum += test.getKruskalMSTweight();
             PrimSum += test.getPrimsMSTweight();
 
+            KruskalTime += test.KruskalRuningTiem;
+            PrimeTime += test.PrimeRunningTime;
         }
-        System.out.println("n=500 p=" + p + "\n" + sum/p + " --- " + PrimSum/p);
+        System.out.println("n=100 p=" + p + "  Kruskal: " + sum/p + " VS Prime: " + PrimSum/p);
+        System.out.println("Running Time compare  Kruskal: " + KruskalTime/p + "ms VS Prime: " + PrimeTime/p + "ms");
 
-//        sum = 0;
-//        p = 50 + r.nextInt(10);
-//        for(int i=0; i < p; i++){
-//            mst test = new mst(1000);
-//            sum += test.getKruskalMSTweight();
-//        }
-//        System.out.println("n=1000 p=" + p + "\n" + sum/p);
-//
-//        sum = 0;
-//        p = 50 + r.nextInt(10);
-//        for(int i=0; i < p; i++){
-//            mst test = new mst(5000);
-//            sum += test.getKruskalMSTweight();
-//        }
-//        System.out.println("n=5000 p=" + p + "\n" + sum/p);
+        sum = 0;
+        PrimSum = 0;
+        p = 50 + r.nextInt(10);
+        for(int i=0; i < p; i++){
+            mst test = new mst(500, true);
+            sum += test.getKruskalMSTweight();
+            PrimSum += test.getPrimsMSTweight();
+            KruskalTime += test.KruskalRuningTiem;
+            PrimeTime += test.PrimeRunningTime;
+        }
+        System.out.println("n=100 p=" + p + "  Kruskal: " + sum/p + " VS Prime: " + PrimSum/p);
+        System.out.println("Running Time compare  Kruskal: " + KruskalTime/p + "ms VS Prime: " + PrimeTime/p + "ms");
 
+
+        sum = 0;
+        PrimSum = 0;
+        p = 50 + r.nextInt(10);
+        for(int i=0; i < p; i++){
+            mst test = new mst(1000, true);
+            sum += test.getKruskalMSTweight();
+            PrimSum += test.getPrimsMSTweight();
+            KruskalTime += test.KruskalRuningTiem;
+            PrimeTime += test.PrimeRunningTime;
+        }
+        System.out.println("n=100 p=" + p + "  Kruskal: " + sum/p + " VS Prime: " + PrimSum/p);
+        System.out.println("Running Time compare  Kruskal: " + KruskalTime/p + "ms VS Prime: " + PrimeTime/p + "ms");
+
+
+        sum = 0;
+        PrimSum = 0;
+        p = 50 + r.nextInt(10);
+        for(int i=0; i < p; i++){
+            mst test = new mst(5000, true);
+            sum += test.getKruskalMSTweight();
+            PrimSum += test.getPrimsMSTweight();
+            KruskalTime += test.KruskalRuningTiem;
+            PrimeTime += test.PrimeRunningTime;
+        }
+        System.out.println("n=100 p=" + p + "  Kruskal: " + sum/p + " VS Prime: " + PrimSum/p);
+        System.out.println("Running Time compare  Kruskal: " + KruskalTime/p + "ms VS Prime: " + PrimeTime/p + "ms");
     }
 
 }
